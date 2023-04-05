@@ -41,7 +41,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 					index/=10;
 				}
 				//printf("%s\r\n",usart3_buf);
-				printf("x=%d,y=%d\r\n",x_cur,y_cur);
+				//printf("x=%d,y=%d\r\n",x_cur,y_cur);
 			}
 		}
 		else{
@@ -69,6 +69,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 							case 'a':stepper_usart_angle[0] = 1;
 											 break;
 							case 'b':stepper_usart_angle[0] = 2;
+											 break;
+							case 'c':stepper_usart_angle[0] = 3;
+											 break;
+							case 'd':stepper_usart_angle[0] = 4;
 											 break;
 							default:printf("输入格式有误\r\n");
 											break;

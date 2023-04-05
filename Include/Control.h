@@ -22,8 +22,8 @@
 #define Stop 0	//静止
 
 /* PID控制相关参数 */
-typedef float PIDOut_Type;	//PID的输出值的数据类型
-typedef float PIDIn_Type;	//PID的目标、误差的数据类型
+typedef int PIDOut_Type;	//PID的输出值的数据类型
+typedef int PIDIn_Type;	//PID的目标、误差的数据类型
 
 /* PID结构体 */
 typedef struct PIDStruct{
