@@ -32,7 +32,7 @@ typedef struct PIDStruct{
 	PIDIn_Type target_val,cur_val;
 	PIDIn_Type err_k2,err_k1,err,i;
 	PIDOut_Type max,min;
-	PIDOut_Type output;
+	PIDOut_Type output,output_last;
 }pid;
 
 /* 步进电机结构体 */
@@ -68,12 +68,15 @@ extern stepper motor2;
 
 extern pid pid_controler1;
 extern pid pid_controler2;
+extern pid pid_outer_x;
+extern pid pid_outer_y;
 
 int fabs_int(int val);
+float first_order_filter(float new_value,float last_value);
 /********** PID底层函数 **********/
 void pid_init(pid* pid_controller,float p,float i,float d,PIDOut_Type max,PIDOut_Type min);
 void pos_pid_realize(pid* PID,PIDIn_Type actual_val);
-void pid_realize(pid* PID,PIDIn_Type actual_val);
+void pid_realize(pid* PID,PIDIn_Type actual_val,int mode);
 
 /********** 电机底层函数 **********/
 void stepper_init(stepper* motor,uint16_t stp_pin,GPIO_TypeDef *port,uint16_t dir_pin,uint32_t channel,pid* PID,int No);

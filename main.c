@@ -34,8 +34,8 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-#define x0 340
-#define y0 340
+#define x0 336
+#define y0 333
 
 /* USER CODE END PTD */
 
@@ -84,8 +84,17 @@ int x_target = x0,y_target = y0;
 int x_cur = x0,y_cur = y0;
 
 //PID控制器的参数，写成全局方便修改
-float kp1=1.5,ki1=0,kd1=0;
-float kp2=1.5,ki2=0,kd2=0;
+//float kp1=1.5,ki1=0,kd1=4.5;
+//float kp2=1.5,ki2=0,kd2=4.5;
+//float kp1=1.5,ki1=0,kd1=12;
+//float kp2=1.5,ki2=0,kd2=12;
+//float kp1=2,ki1=0.01,kd1=16;
+//float kp2=2,ki2=0.01,kd2=16;
+float kp1=4,ki1=0,kd1=0;
+float kp2=4,ki2=0,kd2=0;
+//PID外环
+float k_outer_p1=0.6,k_outer_i1=0,k_outer_d1=0;
+float k_outer_p2=0.6,k_outer_i2=0,k_outer_d2=0;
 /* USER CODE END 0 */
 
 /**
@@ -137,6 +146,8 @@ int main(void)
 	//PID控制器结构体初始化
 	pid_init(&pid_controler1,kp1,ki1,kd1,350,-350);
 	pid_init(&pid_controler2,kp2,ki2,kd2,350,-350);
+	pid_init(&pid_outer_y,k_outer_p1,k_outer_i1,k_outer_d1,300,-300);
+	pid_init(&pid_outer_x,k_outer_p1,k_outer_i2,k_outer_d2,300,-300);
 	
 	//步进电机结构体初始化
 	stepper_init(&motor1,GPIO_PIN_6,GPIOA,GPIO_PIN_15,TIM_CHANNEL_1,&pid_controler1,1);
@@ -151,9 +162,10 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		printf("ycur=%0.d,yex=%d,out=%d\r\n",motor1.pid_concroler->cur_val,target_step_y,motor1.pid_concroler->output);
+		//printf("ycur=%0.d,yex=%d,out=%d\r\n",motor1.pid_concroler->cur_val,target_step_y,motor1.pid_concroler->output);
 		//printf("y_cur=%d,e1=%f,e2=%f,e3=%f\r\n",y_cur,motor1.pid_concroler->err,motor1.pid_concroler->err_k1,motor1.pid_concroler->err_k2);
-		HAL_Delay(7);
+		printf("i_x=%d,i_y=%d,x=%d,y=%d\r\n",motor2.pid_concroler->i,motor1.pid_concroler->i,x_cur,y_cur);
+		//HAL_Delay(7);
   }
   /* USER CODE END 3 */
 }
@@ -223,34 +235,74 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	static int stepper_No_last,stepper_angle_last;
 	static int x_last = x0, y_last = y0;
+	static int v_x_last,v_y_last;
+	int v_x=0,v_y=0;
   
 	/***** TIM1-定时器中断-50Hz *****/
 	if(htim->Instance == TIM1){
 		/***** PID控制 *****/
+		/* 对摄像头数据进行滤波 */
+//		x_cur = first_order_filter(x_cur,x_last);
+//		y_cur = first_order_filter(y_cur,y_last);
 		if(x_last!=x_cur){
-			//pid_dangle(&motor2,500);
-			pid_realize(motor2.pid_concroler,x_cur);
+			/* 外环PID */
+			//输入：位置坐标
+			//输出：小球目标速度值
+			pid_outer_x.target_val = x_target;
+			pid_realize(&pid_outer_x,x_cur,2);
+			/* 内环PID */
+			//输入：小球目标速度值
+			//输出：步进电机目标脉冲数
+			motor2.pid_concroler->target_val = pid_outer_x.output;
+			v_x=x_cur-x_last;
+//			v_x=first_order_filter(v_x,v_x_last);
+			v_x_last=v_x;
+			pid_realize(motor2.pid_concroler,v_x,1);
 			motor2.target_step = motor2.pid_concroler->output;
 			motor2.Anl_v = 500;
 			x_last=x_cur;
 			stepper_ctr(&motor2);
 		}
 		if(y_last!=y_cur){
-			//pid_dangle(&motor1,500);
-			pid_realize(motor1.pid_concroler,x_cur);
+			/* 外环PID */
+			//输入：位置坐标
+			//输出：小球目标速度值
+			pid_outer_y.target_val = y_target;
+			pid_realize(&pid_outer_y,y_cur,2);
+			/* 内环PID */
+			//输入：小球目标速度值
+			//输出：步进电机目标脉冲数
+			motor1.pid_concroler->target_val = pid_outer_y.output;
+			v_y=y_cur-y_last;
+//			v_y=first_order_filter(v_y,v_y_last);
+			v_y_last=v_y;
+			pid_realize(motor1.pid_concroler,v_y,1);
 			motor1.target_step = motor1.pid_concroler->output;
 			motor1.Anl_v = 500;
 			y_last=y_cur;
 			//printf("e1=%f,e2=%f,e3=%f\r\n",motor1.pid_concroler->err,motor1.pid_concroler->err_k1,motor1.pid_concroler->err_k2);
 			stepper_ctr(&motor1);
 		}
-			//pid_dangle(&motor2,225);		
-			//pid_dangle(&motor1,225);
-			//x_last=x_cur;
-			//y_last=y_cur;
-			//stepper_ctr(&motor2);
-  		//stepper_ctr(&motor1);
 	}
+	/***** 串口控制 *****/
+		if(stepper_angle_last==stepper_usart_angle[1]&&(stepper_No_last==stepper_usart_angle[0]));
+		else{
+			switch((int)stepper_usart_angle[0]){
+				case 1:
+				motor1.target_step = stepper_usart_angle[1];
+				stepper_angle_last = stepper_usart_angle[1];
+				stepper_No_last = stepper_usart_angle[0];
+				stepper_ctr(&motor1);
+				break;
+				case 2:
+				motor2.target_step = stepper_usart_angle[1];
+				stepper_angle_last = stepper_usart_angle[1];
+				stepper_No_last = stepper_usart_angle[0];
+				stepper_ctr(&motor2);
+				break;
+				default: break;
+			}
+		}
 }
 
 //输出比较中断函数

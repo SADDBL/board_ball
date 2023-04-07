@@ -1,13 +1,22 @@
 #include "Control.h"
-#define pid_i_max 10000
 stepper motor1;
 stepper motor2;
 
 pid pid_controler1;
 pid pid_controler2;
 
+pid pid_outer_x;
+pid pid_outer_y;
+
 int target_step_y = 0;
 int target_step_x = 0;
+
+int fabs_int(int val)
+{
+	if(val>0) return val;
+	else return -val;
+}
+
 /********** 平板控制函数 **********/
 //利用增量式PID控制平板转动指定角度
 void pid_dangle(stepper *motor,int v)
@@ -60,6 +69,7 @@ void pid_init(pid* pid_controller,float p,float i,float d,PIDOut_Type max,PIDOut
 	pid_controller->output = 0;
 	pid_controller->max = max;
 	pid_controller->min = min;
+	pid_controller->output_last = 0;
 }
 
 /* 增量式PID实现函数 */
@@ -74,21 +84,55 @@ void pos_pid_realize(pid* PID,PIDIn_Type actual_val)
 }
 
 /* 位置式PID实现函数 */
-void pid_realize(pid *PID,PIDIn_Type actual_val)
+//mode：1：内环PID；2：外环PID
+void pid_realize(pid *PID,PIDIn_Type actual_val,int mode)
 {
+	float switch_d = 1;
+	int switch_i = 1;	//积分分离
+	int epsilon_d,epsilon_i;
+	int pid_i_max;
 	PID->cur_val = actual_val;
 	PID->err = PID->target_val - PID->cur_val;
-	PID->i += PID->err;
+	if(mode==1){//内环
+		epsilon_d = 30;
+		epsilon_i = 30;
+		pid_i_max = 10000;
+	}
+	else if(mode==2){//外环
+		epsilon_d = 25;
+		epsilon_i = 20;
+		pid_i_max = 4000;
+	}
+	//抗积分饱和
+	if(PID->output_last>PID->max||PID->output_last<PID->min){
+		if(PID->output_last*PID->err<0)//err使积分项绝对值减小
+			PID->i += PID->err;
+		else PID->i=PID->i;
+	}
+	else PID->i += PID->err;
+	//积分分离和微分分离
+	if(fabs_int(PID->err)<epsilon_d) switch_d = 0.3;
+	if(fabs_int(PID->err)>epsilon_i) switch_i = 0;
 	//积分限幅
-//	if(PID->i>pid_i_max) PID->i = pid_i_max;
-//	else if(PID->i<-pid_i_max) PID->i = -pid_i_max;
-	PID->output = PID->kp*PID->err + PID->ki*PID->i + PID->kd*(PID->err - PID->err_k1);
+	if(PID->i>pid_i_max) PID->i = pid_i_max;
+	else if(PID->i<-pid_i_max) PID->i = -pid_i_max;
+	PID->output = PID->kp*PID->err + switch_i*PID->ki*PID->i + switch_d*PID->kd*(PID->err - PID->err_k1);
 	PID->err_k1 = PID->err;
+	PID->output_last = PID->output;
 	//输出限幅
 	if(PID->output>PID->max) PID->output=PID->max;
 	if(PID->output<PID->min) PID->output=PID->min;
 }
 
+//一阶滤波
+#define a 0.8 //滤波系数
+float first_order_filter(float new_value,float last_value)
+{
+	//a的取值决定了算法的灵敏度，a越大，新采集的值占的权重越大，算法越灵敏，但平顺性差
+	//相反，a越小，新采集的值占的权重越小，灵敏度差，但平顺性好。
+	float flitered = new_value*a + last_value*(1-a);
+	return flitered;
+}
 
 /********** 步进电机底层函数 **********/
 void stepper_init(stepper* motor,uint16_t stp_pin,GPIO_TypeDef *port,uint16_t dir_pin,uint32_t channel,pid* PID,int No)
@@ -129,6 +173,5 @@ void stepper_ctr(stepper* motor)
 		__HAL_TIM_CLEAR_IT(&htim4,motor->Channel);
 	}
 	//开启输出比较中断
-	
 }
 
