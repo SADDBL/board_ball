@@ -45,6 +45,9 @@ int fputc(int ch, FILE *f)
 {
 	HAL_UART_Transmit(&huart2,(uint8_t*)&ch,1,10);
 	return ch;
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
 }
 
 void delay_us(uint32_t us);
@@ -69,7 +72,26 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-extern int target_step_y;
+
+void delay_us(uint32_t us);
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
 
 int OC_Channel1_Pulse,OC_Channel2_Pulse;//输出比较Pulse值，决定输出频率，f=1MHz/Pulse
 int OC_Channel1_Duty,OC_Channel2_Duty;//输出比较Duty值，决定占空比，即Duty%
@@ -84,17 +106,13 @@ int x_target = x0,y_target = y0;
 int x_cur = x0,y_cur = y0;
 
 //PID控制器的参数，写成全局方便修改
-//float kp1=1.5,ki1=0,kd1=4.5;
-//float kp2=1.5,ki2=0,kd2=4.5;
-//float kp1=1.5,ki1=0,kd1=12;
-//float kp2=1.5,ki2=0,kd2=12;
 //float kp1=2,ki1=0.01,kd1=16;
 //float kp2=2,ki2=0.01,kd2=16;
-float kp1=4,ki1=0,kd1=0;
-float kp2=4,ki2=0,kd2=0;
+float kp1=5.5,ki1=0,kd1=0;
+float kp2=5.5,ki2=0,kd2=0;
 //PID外环
-float k_outer_p1=0.6,k_outer_i1=0,k_outer_d1=0;
-float k_outer_p2=0.6,k_outer_i2=0,k_outer_d2=0;
+float k_outer_p1=0.4,k_outer_i1=0.004,k_outer_d1=4;
+float k_outer_p2=0.4,k_outer_i2=0.004,k_outer_d2=4;
 /* USER CODE END 0 */
 
 /**
@@ -139,7 +157,6 @@ int main(void)
 	__HAL_TIM_CLEAR_FLAG(&htim1, TIM_FLAG_UPDATE);
 	OLED_Init();
 	OLED_DisPlay_On();
-	oled_pid_para_dis(1);
 	OC_Channel1_Duty=50;
 	OC_Channel2_Duty=50;
 	
@@ -159,12 +176,26 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+		/***** OLED操作 *****/
+		//main界面
+		if(MENU==MAIN_MENU){
+			oled_main_menu_opera();
+		}
+		//set界面
+		else if(MENU==SET_MENU){
+			oled_set_menu_opera();
+		}
+		//task界面
+		else if(MENU==TASK_MENU){
+			
+		}
+		
     /* USER CODE END WHILE */
-
+		
     /* USER CODE BEGIN 3 */
 		//printf("ycur=%0.d,yex=%d,out=%d\r\n",motor1.pid_concroler->cur_val,target_step_y,motor1.pid_concroler->output);
 		//printf("y_cur=%d,e1=%f,e2=%f,e3=%f\r\n",y_cur,motor1.pid_concroler->err,motor1.pid_concroler->err_k1,motor1.pid_concroler->err_k2);
-		printf("i_x=%d,i_y=%d,x=%d,y=%d\r\n",motor2.pid_concroler->i,motor1.pid_concroler->i,x_cur,y_cur);
+		//printf("i_x=%d,i_y=%d,i_x_o=%d,i_y_o=%d,x=%d,y=%d\r\n",motor2.pid_concroler->i,motor1.pid_concroler->i,pid_outer_x.i,pid_outer_y.i,x_cur,y_cur);
 		//HAL_Delay(7);
   }
   /* USER CODE END 3 */
@@ -224,8 +255,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			delay_us(1);
 			CKOut_Low;
 		}
-		keyborad_data=data;
-//		printf("%d\r\n",keyborad_data);
+		if(data!=0){
+			keyborad_data=data;
+			printf("%d\r\n",keyborad_data);
+		}
 		__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_7);
 	}
 }
@@ -237,13 +270,36 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	static int x_last = x0, y_last = y0;
 	static int v_x_last,v_y_last;
 	int v_x=0,v_y=0;
+	
+	static int count = 0,flag = 1;
+	if(count<3000){
+		count++;
+	}
+	else if(count==3000){
+		count = 0;
+		if(flag == 1){
+			x_target = 220;
+			y_target = 336;
+			pid_outer_x.i_max = 500;
+			pid_outer_y.i_max = 500;
+		}
+		else if(flag == -1){
+			x_target=336;
+			y_target = 220;
+			pid_outer_x.i_max = 500;
+			pid_outer_y.i_max = 500;
+		}
+		flag = -flag;
+		pid_outer_x.i = 0;
+		pid_outer_y.i = 0;
+	}
   
 	/***** TIM1-定时器中断-50Hz *****/
 	if(htim->Instance == TIM1){
 		/***** PID控制 *****/
 		/* 对摄像头数据进行滤波 */
-//		x_cur = first_order_filter(x_cur,x_last);
-//		y_cur = first_order_filter(y_cur,y_last);
+		x_cur = first_order_filter(x_cur,x_last);
+		y_cur = first_order_filter(y_cur,y_last);
 		if(x_last!=x_cur){
 			/* 外环PID */
 			//输入：位置坐标
@@ -259,7 +315,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			v_x_last=v_x;
 			pid_realize(motor2.pid_concroler,v_x,1);
 			motor2.target_step = motor2.pid_concroler->output;
-			motor2.Anl_v = 500;
+			motor2.Anl_v = 300;
 			x_last=x_cur;
 			stepper_ctr(&motor2);
 		}
@@ -278,7 +334,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			v_y_last=v_y;
 			pid_realize(motor1.pid_concroler,v_y,1);
 			motor1.target_step = motor1.pid_concroler->output;
-			motor1.Anl_v = 500;
+			motor1.Anl_v = 300;
 			y_last=y_cur;
 			//printf("e1=%f,e2=%f,e3=%f\r\n",motor1.pid_concroler->err,motor1.pid_concroler->err_k1,motor1.pid_concroler->err_k2);
 			stepper_ctr(&motor1);
@@ -289,13 +345,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		else{
 			switch((int)stepper_usart_angle[0]){
 				case 1:
-				motor1.target_step = stepper_usart_angle[1];
+				motor1.target_step = (stepper_usart_angle[1]/MICRO_STEP_ANGLE);
 				stepper_angle_last = stepper_usart_angle[1];
 				stepper_No_last = stepper_usart_angle[0];
 				stepper_ctr(&motor1);
 				break;
 				case 2:
-				motor2.target_step = stepper_usart_angle[1];
+				motor2.target_step = (stepper_usart_angle[1]/MICRO_STEP_ANGLE);
 				stepper_angle_last = stepper_usart_angle[1];
 				stepper_No_last = stepper_usart_angle[0];
 				stepper_ctr(&motor2);
@@ -373,6 +429,22 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 //usart3中断函数，使用DMA接收
+
+/* 显示参数 */
+/**
+ * @brief  主函数初始化
+ */
+void init_main(void){
+	int i;
+	//任务点列表初始化
+	for(i = 0;i<5;i++){
+		point_list[i].x = 0;
+		point_list[i].y = 0;
+	}
+	
+	//界面相关初始化
+	MENU = MAIN_MENU;
+}
 
 // 简单延时，仅适用于F1系列
 void delay_us(uint32_t us)

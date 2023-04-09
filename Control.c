@@ -11,6 +11,8 @@ pid pid_outer_y;
 int target_step_y = 0;
 int target_step_x = 0;
 
+Point point_list[5]; 
+
 int fabs_int(int val)
 {
 	if(val>0) return val;
@@ -48,11 +50,12 @@ void pid_dangle(stepper *motor,int v)
 	}
 }
 
-//void pid_angle(stepper *motor,int v)
-//{
-//	motor->Anl_v = v;
-//	pid_realize(motor->pid_concroler,)
-//}
+/* 初始化平板调平 */
+void board_init()
+{
+	
+}
+
 
 /********** PID底层函数 **********/
 /* PID初始化函数 */
@@ -70,6 +73,7 @@ void pid_init(pid* pid_controller,float p,float i,float d,PIDOut_Type max,PIDOut
 	pid_controller->max = max;
 	pid_controller->min = min;
 	pid_controller->output_last = 0;
+	pid_controller->i_max = 500;
 }
 
 /* 增量式PID实现函数 */
@@ -90,18 +94,17 @@ void pid_realize(pid *PID,PIDIn_Type actual_val,int mode)
 	float switch_d = 1;
 	int switch_i = 1;	//积分分离
 	int epsilon_d,epsilon_i;
-	int pid_i_max;
 	PID->cur_val = actual_val;
 	PID->err = PID->target_val - PID->cur_val;
 	if(mode==1){//内环
 		epsilon_d = 30;
 		epsilon_i = 30;
-		pid_i_max = 10000;
+		PID->i_max = 3000;
 	}
 	else if(mode==2){//外环
-		epsilon_d = 25;
+		epsilon_d = 20;
 		epsilon_i = 20;
-		pid_i_max = 4000;
+		//PID->i_max = 500;
 	}
 	//抗积分饱和
 	if(PID->output_last>PID->max||PID->output_last<PID->min){
@@ -111,11 +114,12 @@ void pid_realize(pid *PID,PIDIn_Type actual_val,int mode)
 	}
 	else PID->i += PID->err;
 	//积分分离和微分分离
-	if(fabs_int(PID->err)<epsilon_d) switch_d = 0.3;
+	if(fabs_int(PID->err)<epsilon_d) switch_d = 0;
 	if(fabs_int(PID->err)>epsilon_i) switch_i = 0;
+	if(fabs_int(PID->err)<5) switch_i = 0;
 	//积分限幅
-	if(PID->i>pid_i_max) PID->i = pid_i_max;
-	else if(PID->i<-pid_i_max) PID->i = -pid_i_max;
+	if(PID->i>PID->i_max) PID->i = PID->i_max;
+	else if(PID->i<-PID->i_max) PID->i = -PID->i_max;
 	PID->output = PID->kp*PID->err + switch_i*PID->ki*PID->i + switch_d*PID->kd*(PID->err - PID->err_k1);
 	PID->err_k1 = PID->err;
 	PID->output_last = PID->output;

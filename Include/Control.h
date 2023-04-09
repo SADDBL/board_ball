@@ -21,6 +21,11 @@
 #define Running 1	//正在转动
 #define Stop 0	//静止
 
+/* 坐标点结构体 */
+typedef struct point{
+	int x,y;
+}Point;
+
 /* PID控制相关参数 */
 typedef int PIDOut_Type;	//PID的输出值的数据类型
 typedef int PIDIn_Type;	//PID的目标、误差的数据类型
@@ -30,7 +35,8 @@ typedef struct PIDStruct{
 	float kp,ki,kd;
 	float k1;	//增益放大系数
 	PIDIn_Type target_val,cur_val;
-	PIDIn_Type err_k2,err_k1,err,i;
+	PIDIn_Type err_k2,err_k1,err;
+	PIDIn_Type i,i_max;
 	PIDOut_Type max,min;
 	PIDOut_Type output,output_last;
 }pid;
@@ -71,6 +77,8 @@ extern pid pid_controler2;
 extern pid pid_outer_x;
 extern pid pid_outer_y;
 
+extern Point point_list[5]; 
+
 int fabs_int(int val);
 float first_order_filter(float new_value,float last_value);
 /********** PID底层函数 **********/
@@ -84,5 +92,6 @@ void stepper_ctr(stepper* motor);
 
 /********** 平板控制函数 **********/
 void pid_dangle(stepper *motor,int v);
+void board_init();
 
 #endif
