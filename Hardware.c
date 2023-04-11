@@ -53,9 +53,17 @@ void oled_pid_para_dis(int pid_No)
  * @brief  显示main界面
  */
 void oled_main_menu_draw(void){
+	char task_str[17];
 	OLED_ShowString(32,0,"Main Menu",16);
 	OLED_ShowString(1,1*16,"Init:1",16);
 	OLED_ShowString(8*8,1*16,"Task:2",16);
+	if(task==0){
+		sprintf(task_str,"TaskRunning:N");
+	}
+	else{
+		sprintf(task_str,"TaskRunning:%d",task);
+	}
+	OLED_ShowString(1,3*16,task_str,16);
 	OLED_Refresh();
 }
 
@@ -75,12 +83,16 @@ void oled_main_menu_opera(void){
 	if(keyborad_data==1){
 		keyborad_data = 0;
 		MENU = SET_MENU;
+		main_flag = 0;
+		OLED_Clear();
 		return;
 	}
 	//task界面
 	else if(keyborad_data==2){
 		keyborad_data = 0;
+		main_flag = 0;
 		MENU = TASK_MENU;
+		OLED_Clear();
 		return;
 	}
 }
@@ -118,20 +130,51 @@ void oled_set_menu_opera(void){
 	else if(keyborad_data == 10){
 		MENU = MAIN_MENU;
 		keyborad_data = 0;
+		OLED_Clear();
 		return;
 	}
 }
 
 /* 绘制task界面 */
 void oled_task_menu_draw(void){
+	char task_str[16];
 	OLED_ShowString(32,0,"Task Menu",16);
 	//基本部分
 	OLED_ShowString(1,1*16,"A:1,2,3,4",16);
 	//进阶部分
 	OLED_ShowString(1,2*16,"B:5,6,7",16);
+	if(task==0){
+		sprintf(task_str,"TaskRunning:N");
+	}
+	else{
+		sprintf(task_str,"TaskRunning:%d",task);
+	}
+	OLED_ShowString(1,3*16,task_str,16);
+	OLED_Refresh();
 }
 
 /* task操作函数 */
 void oled_task_menu_opera(void){
-	
+	static int flag_task = 0;
+	if(MENU!=TASK_MENU){};
+	//绘制task选择界面
+	if(flag_task==0){
+		oled_task_menu_draw();
+		flag_task = 1;
+		keyborad_data=0;
+	}
+	//选择任务
+	if(keyborad_data!=0){
+		task = keyborad_data;
+		x_cur = -1;
+		y_cur = -1;
+		MENU = MAIN_MENU;
+		flag_task = 0;
+		keyborad_data = 0;
+		pid_outer_x.i = 0;
+		pid_outer_y.i = 0;
+		point_order = 0;
+		OLED_Clear();
+		return ;
+	}
 }

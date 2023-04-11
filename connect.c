@@ -70,10 +70,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 											 break;
 							case 'b':stepper_usart_angle[0] = 2;
 											 break;
-							case 'c':stepper_usart_angle[0] = 3;
-											 break;
-							case 'd':stepper_usart_angle[0] = 4;
-											 break;
 							default:printf("输入格式有误\r\n");
 											break;
 						}
@@ -100,6 +96,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 			}
 		}
 		else{
+			
 			if(*RecieveBuffer=='a'||*RecieveBuffer=='b'||*RecieveBuffer=='c'||*RecieveBuffer=='d'){
 				flag2 = 1;
 				RxLen2 = 0;

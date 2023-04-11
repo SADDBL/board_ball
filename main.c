@@ -34,8 +34,10 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-#define x0 336
-#define y0 333
+
+//调零角度
+#define a_x_0 (float) 1.1
+#define a_y_0 (float) -1.4
 
 /* USER CODE END PTD */
 
@@ -64,6 +66,17 @@ void delay_us(uint32_t us);
 
 /* USER CODE END PV */
 
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
@@ -72,7 +85,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void init_main(void);
 void delay_us(uint32_t us);
 /* USER CODE END PD */
 
@@ -99,11 +112,14 @@ int OC_Channel1_Duty,OC_Channel2_Duty;//输出比较Duty值，决定占空比，即Duty%
 //矩阵键盘输入数值
 int keyborad_data;
 
+int x0 = 336;
+int y0 = 333;
+
 //小球目标位置(x,y)
-int x_target = x0,y_target = y0;
+int x_target = 336,y_target = 333;
 
 //小球当前位置(x,y)
-int x_cur = x0,y_cur = y0;
+int x_cur = -1,y_cur = -1;
 
 //PID控制器的参数，写成全局方便修改
 //float kp1=2,ki1=0.01,kd1=16;
@@ -169,6 +185,9 @@ int main(void)
 	//步进电机结构体初始化
 	stepper_init(&motor1,GPIO_PIN_6,GPIOA,GPIO_PIN_15,TIM_CHANNEL_1,&pid_controler1,1);
 	stepper_init(&motor2,GPIO_PIN_7,GPIOB,GPIO_PIN_3,TIM_CHANNEL_2,&pid_controler2,2);
+	
+	//主函数初始化
+	init_main();
 
   /* USER CODE END 2 */
 
@@ -187,16 +206,12 @@ int main(void)
 		}
 		//task界面
 		else if(MENU==TASK_MENU){
-			
+			oled_task_menu_opera();
 		}
 		
     /* USER CODE END WHILE */
-		
+
     /* USER CODE BEGIN 3 */
-		//printf("ycur=%0.d,yex=%d,out=%d\r\n",motor1.pid_concroler->cur_val,target_step_y,motor1.pid_concroler->output);
-		//printf("y_cur=%d,e1=%f,e2=%f,e3=%f\r\n",y_cur,motor1.pid_concroler->err,motor1.pid_concroler->err_k1,motor1.pid_concroler->err_k2);
-		//printf("i_x=%d,i_y=%d,i_x_o=%d,i_y_o=%d,x=%d,y=%d\r\n",motor2.pid_concroler->i,motor1.pid_concroler->i,pid_outer_x.i,pid_outer_y.i,x_cur,y_cur);
-		//HAL_Delay(7);
   }
   /* USER CODE END 3 */
 }
@@ -263,81 +278,84 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	}
 }
 
+int task_flag = 0;//flag = 1，小球在指定范围内，count计数；flag = 0，小球不在指定范围内，count = 0
+int task_count = 0;
 //定时器中断函数
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	static int stepper_No_last,stepper_angle_last;
-	static int x_last = x0, y_last = y0;
+	static int x_last = 0, y_last = 0;
 	static int v_x_last,v_y_last;
 	int v_x=0,v_y=0;
-	
-	static int count = 0,flag = 1;
-	if(count<3000){
-		count++;
-	}
-	else if(count==3000){
-		count = 0;
-		if(flag == 1){
-			x_target = 220;
-			y_target = 336;
-			pid_outer_x.i_max = 500;
-			pid_outer_y.i_max = 500;
-		}
-		else if(flag == -1){
-			x_target=336;
-			y_target = 220;
-			pid_outer_x.i_max = 500;
-			pid_outer_y.i_max = 500;
-		}
-		flag = -flag;
-		pid_outer_x.i = 0;
-		pid_outer_y.i = 0;
-	}
   
-	/***** TIM1-定时器中断-50Hz *****/
+	/***** TIM1-定时器中断-50Hz/20ms	*****/
 	if(htim->Instance == TIM1){
-		/***** PID控制 *****/
-		/* 对摄像头数据进行滤波 */
-		x_cur = first_order_filter(x_cur,x_last);
-		y_cur = first_order_filter(y_cur,y_last);
-		if(x_last!=x_cur){
-			/* 外环PID */
-			//输入：位置坐标
-			//输出：小球目标速度值
-			pid_outer_x.target_val = x_target;
-			pid_realize(&pid_outer_x,x_cur,2);
-			/* 内环PID */
-			//输入：小球目标速度值
-			//输出：步进电机目标脉冲数
-			motor2.pid_concroler->target_val = pid_outer_x.output;
-			v_x=x_cur-x_last;
-//			v_x=first_order_filter(v_x,v_x_last);
-			v_x_last=v_x;
-			pid_realize(motor2.pid_concroler,v_x,1);
-			motor2.target_step = motor2.pid_concroler->output;
-			motor2.Anl_v = 300;
-			x_last=x_cur;
-			stepper_ctr(&motor2);
+		/***** 任务函数 *****/
+		if(task==1) task1();
+		else if(task==2) task2();
+		else if(task==3) task3();
+		else if(task==4) task4();
+		
+		//计时
+		if(task_flag == 0){
+			task_count = 0;
 		}
-		if(y_last!=y_cur){
-			/* 外环PID */
-			//输入：位置坐标
-			//输出：小球目标速度值
-			pid_outer_y.target_val = y_target;
-			pid_realize(&pid_outer_y,y_cur,2);
-			/* 内环PID */
-			//输入：小球目标速度值
-			//输出：步进电机目标脉冲数
-			motor1.pid_concroler->target_val = pid_outer_y.output;
-			v_y=y_cur-y_last;
-//			v_y=first_order_filter(v_y,v_y_last);
-			v_y_last=v_y;
-			pid_realize(motor1.pid_concroler,v_y,1);
-			motor1.target_step = motor1.pid_concroler->output;
-			motor1.Anl_v = 300;
-			y_last=y_cur;
-			//printf("e1=%f,e2=%f,e3=%f\r\n",motor1.pid_concroler->err,motor1.pid_concroler->err_k1,motor1.pid_concroler->err_k2);
-			stepper_ctr(&motor1);
+		else{
+			task_count++;
+		}
+		
+		/***** PID控制 *****/
+		if(x_cur==-1&&y_cur==-1){
+			x_last=x0;
+			y_last=y0;
+		}
+		else if(x_cur!=-1&&y_cur!=-1){
+			/* 对摄像头数据进行滤波 */
+			if(x_cur==0) x_cur = x_last;
+			if(y_cur==0) y_cur = y_last;
+			x_cur = first_order_filter(x_cur,x_last,0.8);
+			y_cur = first_order_filter(y_cur,y_last,0.8);
+			if(x_last!=x_cur){
+				/* 外环PID */
+				//输入：位置坐标
+				//输出：小球目标速度值
+				pid_outer_x.target_val = x_target;
+				pid_realize(&pid_outer_x,x_cur,2);
+				/* 内环PID */
+				//输入：小球目标速度值
+				//输出：步进电机目标脉冲数
+				motor2.pid_concroler->target_val = pid_outer_x.output;
+				v_x=x_cur-x_last;
+	//			v_x=first_order_filter(v_x,v_x_last);
+				v_x_last=v_x;
+				pid_realize(motor2.pid_concroler,v_x,1);
+				first_order_filter(motor2.pid_concroler->output,motor2.pid_concroler->output_last,0.5);
+				motor2.target_step = motor2.pid_concroler->output;
+				motor2.Anl_v = 200;
+				x_last=x_cur;
+				stepper_ctr(&motor2);
+			}
+			if(y_last!=y_cur){
+				/* 外环PID */
+				//输入：位置坐标
+				//输出：小球目标速度值
+				pid_outer_y.target_val = y_target;
+				pid_realize(&pid_outer_y,y_cur,2);
+				/* 内环PID */
+				//输入：小球目标速度值
+				//输出：步进电机目标脉冲数
+				motor1.pid_concroler->target_val = pid_outer_y.output;
+				v_y=y_cur-y_last;
+	//			v_y=first_order_filter(v_y,v_y_last);
+				v_y_last=v_y;
+				pid_realize(motor1.pid_concroler,v_y,1);
+				first_order_filter(motor1.pid_concroler->output,motor1.pid_concroler->output_last,0.5);
+				motor1.target_step = motor1.pid_concroler->output;
+				motor1.Anl_v = 200;
+				y_last=y_cur;
+				//printf("e1=%f,e2=%f,e3=%f\r\n",motor1.pid_concroler->err,motor1.pid_concroler->err_k1,motor1.pid_concroler->err_k2);
+				stepper_ctr(&motor1);
+			}
 		}
 	}
 	/***** 串口控制 *****/
@@ -437,10 +455,41 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 void init_main(void){
 	int i;
 	//任务点列表初始化
-	for(i = 0;i<5;i++){
-		point_list[i].x = 0;
-		point_list[i].y = 0;
-	}
+//	for(i = 0;i<5;i++){
+//		point_list[i].x = 0;
+//		point_list[i].y = 0;
+//	}
+	point_list[0].x = 336;
+	point_list[0].y = 460;
+	
+	point_list[1].x = 210;
+	point_list[1].y = 337;
+	
+	point_list[2].x = 460;
+	point_list[2].y = 333;
+	
+	point_list[3].x = 336;
+	point_list[3].y = 200;
+	
+	point_list[4].x = 336;
+	point_list[4].y = 333;
+	
+	task = 0;
+	x_cur = -1;
+	y_cur = -1;
+	
+	//平板调零
+	motor1.target_step = a_x_0/MICRO_STEP_ANGLE;
+	motor2.target_step = a_y_0/MICRO_STEP_ANGLE;
+	stepper_ctr(&motor1);
+	HAL_Delay(50);
+	stepper_ctr(&motor2);
+	HAL_Delay(200);
+	motor1.target_step = 0;
+	motor1.step_record = 0;
+	motor2.target_step = 0;
+	motor2.step_record = 0;
+	HAL_Delay(200);
 	
 	//界面相关初始化
 	MENU = MAIN_MENU;

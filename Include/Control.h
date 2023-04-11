@@ -79,8 +79,12 @@ extern pid pid_outer_y;
 
 extern Point point_list[5]; 
 
+extern int task;
+
+extern int point_order;
+
 int fabs_int(int val);
-float first_order_filter(float new_value,float last_value);
+float first_order_filter(float new_value,float last_value,float a);
 /********** PID底层函数 **********/
 void pid_init(pid* pid_controller,float p,float i,float d,PIDOut_Type max,PIDOut_Type min);
 void pos_pid_realize(pid* PID,PIDIn_Type actual_val);
@@ -92,6 +96,8 @@ void stepper_ctr(stepper* motor);
 
 /********** 平板控制函数 **********/
 void pid_dangle(stepper *motor,int v);
-void board_init();
-
+void task1(void);
+void task2(void);
+void task3(void);
+void task4(void);
 #endif
