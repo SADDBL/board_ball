@@ -11,6 +11,8 @@ pid pid_outer_y;
 int target_step_y = 0;
 int target_step_x = 0;
 
+int task = 0;
+
 Point point_list[5]; 
 
 int fabs_int(int val)
@@ -20,6 +22,74 @@ int fabs_int(int val)
 }
 
 /********** 平板控制函数 **********/
+//任务内容函数:基础任务一
+void task1(void){
+	x0 = point_list[1].x;
+	y0 = point_list[1].y;
+	x_target = point_list[1].x;
+	y_target = point_list[1].y;
+}
+
+//任务内容函数:基础任务二
+void task2(void){
+	motor1.Anl_v = 100;
+	motor2.Anl_v = 100;
+	x0 = point_list[0].x;
+	y0 = point_list[0].y;
+	x_target = point_list[4].x;
+	y_target = point_list[4].y;
+}
+
+int point_order = 0;
+
+//任务内容函数:基础任务三
+void task3(void){
+	x0 = point_list[0].x;
+	y0 = point_list[0].y;
+	if(task_count>99){
+		if(point_order<1){
+			point_order++;
+			pid_outer_x.i = 0;
+			pid_outer_y.i = 0;
+		}
+	}
+	if(point_order==0){
+		x_target = point_list[4].x;
+		y_target = point_list[4].y;
+	}
+	else if(point_order == 1){
+		x_target = point_list[3].x;
+		y_target = point_list[3].y;
+		motor1.Anl_v = 100;
+		motor2.Anl_v = 100;
+	}
+	task_flag = 0;
+	if(pid_outer_x.err<10&&pid_outer_x.err>-10&&pid_outer_y.err<10&&pid_outer_y.err>-10){
+		//float r = 
+		task_flag = 1;
+	}
+}
+
+//任务内容函数:基础任务四
+void task4(void){
+	x0 = point_list[0].x;
+	y0 = point_list[0].y;
+	if(point_order==0){
+		x_target = 400;
+		y_target = 330;
+	}
+	else if(point_order == 1){
+		x_target = point_list[3].x;
+		y_target = point_list[3].y;
+		motor1.Anl_v = 100;
+		motor2.Anl_v = 100;
+	}
+	if(fabs_int(x_cur-400)<10&&fabs_int(y_cur-330)<10){
+		//float r = 
+		point_order = 1;
+	}
+}
+
 //利用增量式PID控制平板转动指定角度
 void pid_dangle(stepper *motor,int v)
 {
@@ -48,12 +118,6 @@ void pid_dangle(stepper *motor,int v)
 			motor->target_step=-350;
 		motor->Anl_v = v;
 	}
-}
-
-/* 初始化平板调平 */
-void board_init()
-{
-	
 }
 
 
@@ -104,7 +168,7 @@ void pid_realize(pid *PID,PIDIn_Type actual_val,int mode)
 	else if(mode==2){//外环
 		epsilon_d = 20;
 		epsilon_i = 20;
-		//PID->i_max = 500;
+		PID->i_max = 900;
 	}
 	//抗积分饱和
 	if(PID->output_last>PID->max||PID->output_last<PID->min){
@@ -129,8 +193,7 @@ void pid_realize(pid *PID,PIDIn_Type actual_val,int mode)
 }
 
 //一阶滤波
-#define a 0.8 //滤波系数
-float first_order_filter(float new_value,float last_value)
+float first_order_filter(float new_value,float last_value,float a)
 {
 	//a的取值决定了算法的灵敏度，a越大，新采集的值占的权重越大，算法越灵敏，但平顺性差
 	//相反，a越小，新采集的值占的权重越小，灵敏度差，但平顺性好。
