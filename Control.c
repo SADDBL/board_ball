@@ -249,8 +249,8 @@ void pid_realize(pid *PID,PIDIn_Type actual_val,int mode)
 	}
 	else PID->i += PID->err;
 	//积分分离和微分分离
-	if(PID->err>PID->epsilon_d1&&PID->err<PID->epsilon_d2) switch_d = 0;
-	if(PID->err<PID->epsilon_i1&&PID->err>PID->epsilon_i2) switch_i = 0;
+	if(PID->err<PID->epsilon_d1&&PID->err>PID->epsilon_d2) switch_d = 0;
+	if(PID->err>PID->epsilon_i1&&PID->err<PID->epsilon_i2) switch_i = 0;
 	//if(fabs_int(PID->err)<5) switch_i = 0;
 	//积分限幅
 	if(PID->i>PID->i_max) PID->i = PID->i_max;
