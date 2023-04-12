@@ -311,8 +311,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		}
 		else if(x_cur!=-1&&y_cur!=-1){
 			/* 对摄像头数据进行滤波 */
-			if(x_cur==0) x_cur = x_last;
-			if(y_cur==0) y_cur = y_last;
+			if(x_cur<10) x_cur = x_last;
+			if(y_cur<10) y_cur = y_last;
 			x_cur = first_order_filter(x_cur,x_last,0.8);
 			y_cur = first_order_filter(y_cur,y_last,0.8);
 			if(x_last!=x_cur){
@@ -331,7 +331,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 				pid_realize(motor2.pid_concroler,v_x,1);
 				first_order_filter(motor2.pid_concroler->output,motor2.pid_concroler->output_last,0.5);
 				motor2.target_step = motor2.pid_concroler->output;
-				motor2.Anl_v = 200;
 				x_last=x_cur;
 				stepper_ctr(&motor2);
 			}
@@ -351,7 +350,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 				pid_realize(motor1.pid_concroler,v_y,1);
 				first_order_filter(motor1.pid_concroler->output,motor1.pid_concroler->output_last,0.5);
 				motor1.target_step = motor1.pid_concroler->output;
-				motor1.Anl_v = 200;
 				y_last=y_cur;
 				//printf("e1=%f,e2=%f,e3=%f\r\n",motor1.pid_concroler->err,motor1.pid_concroler->err_k1,motor1.pid_concroler->err_k2);
 				stepper_ctr(&motor1);
@@ -459,7 +457,7 @@ void init_main(void){
 //		point_list[i].x = 0;
 //		point_list[i].y = 0;
 //	}
-	point_list[0].x = 336;
+	point_list[0].x = 334;
 	point_list[0].y = 460;
 	
 	point_list[1].x = 210;
@@ -469,9 +467,9 @@ void init_main(void){
 	point_list[2].y = 333;
 	
 	point_list[3].x = 336;
-	point_list[3].y = 200;
+	point_list[3].y = 213;
 	
-	point_list[4].x = 336;
+	point_list[4].x = 337;
 	point_list[4].y = 333;
 	
 	task = 0;

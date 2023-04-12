@@ -35,7 +35,8 @@ typedef struct PIDStruct{
 	float kp,ki,kd;
 	float k1;	//增益放大系数
 	PIDIn_Type target_val,cur_val;
-	PIDIn_Type err_k2,err_k1,err;
+	PIDIn_Type err,err_k1;
+	PIDIn_Type epsilon_i1,epsilon_i2,epsilon_d1,epsilon_d2;
 	PIDIn_Type i,i_max;
 	PIDOut_Type max,min;
 	PIDOut_Type output,output_last;
@@ -87,7 +88,6 @@ int fabs_int(int val);
 float first_order_filter(float new_value,float last_value,float a);
 /********** PID底层函数 **********/
 void pid_init(pid* pid_controller,float p,float i,float d,PIDOut_Type max,PIDOut_Type min);
-void pos_pid_realize(pid* PID,PIDIn_Type actual_val);
 void pid_realize(pid* PID,PIDIn_Type actual_val,int mode);
 
 /********** 电机底层函数 **********/

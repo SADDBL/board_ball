@@ -26,18 +26,40 @@ int fabs_int(int val)
 void task1(void){
 	x0 = point_list[1].x;
 	y0 = point_list[1].y;
-	x_target = point_list[1].x;
-	y_target = point_list[1].y;
+	motor1.Anl_v = 100;
+	motor2.Anl_v = 100;
+	x_target = point_list[1].x+19;
+	y_target = point_list[1].y-9;
+	pid_outer_x.epsilon_d1 = 25;
+	pid_outer_x.epsilon_i1 = 30;
+	pid_outer_y.epsilon_d1 = 20;
+	pid_outer_y.epsilon_i1 = 15;
+	
+	pid_outer_x.epsilon_d2 = -20;
+	pid_outer_x.epsilon_i2 = -20;
+	pid_outer_y.epsilon_d2 = -25;
+	pid_outer_y.epsilon_i2 = -20;
+	pid_outer_x.i_max = 600;
+	pid_outer_y.i_max = 600;
 }
 
 //任务内容函数:基础任务二
 void task2(void){
-	motor1.Anl_v = 100;
-	motor2.Anl_v = 100;
+	motor1.Anl_v = 300;
+	motor2.Anl_v = 300;
 	x0 = point_list[0].x;
 	y0 = point_list[0].y;
-	x_target = point_list[4].x;
-	y_target = point_list[4].y;
+	x_target = point_list[4].x+1;
+	y_target = point_list[4].y-3;
+	pid_outer_x.epsilon_d1 = 20;
+	pid_outer_x.epsilon_i1 = 20;
+	pid_outer_y.epsilon_d1 = 20;
+	pid_outer_y.epsilon_i1 = 20;
+	
+	pid_outer_x.epsilon_d2 = -20;
+	pid_outer_x.epsilon_i2 = -20;
+	pid_outer_y.epsilon_d2 = -20;
+	pid_outer_y.epsilon_i2 = -20;
 }
 
 int point_order = 0;
@@ -46,25 +68,50 @@ int point_order = 0;
 void task3(void){
 	x0 = point_list[0].x;
 	y0 = point_list[0].y;
+	
 	if(task_count>99){
 		if(point_order<1){
 			point_order++;
 			pid_outer_x.i = 0;
 			pid_outer_y.i = 0;
+			pid_outer_x.i_max = 500;
 		}
 	}
 	if(point_order==0){
-		x_target = point_list[4].x;
-		y_target = point_list[4].y;
+		motor1.Anl_v = 300;
+		motor2.Anl_v = 300;
+		x_target = point_list[4].x+2;
+		y_target = point_list[4].y-3;
+		pid_outer_x.epsilon_d1 = 20;
+		pid_outer_x.epsilon_i1 = 20;
+		pid_outer_y.epsilon_d1 = 20;
+		pid_outer_y.epsilon_i1 = 20;
+		
+		pid_outer_x.epsilon_d2 = -20;
+		pid_outer_x.epsilon_i2 = -20;
+		pid_outer_y.epsilon_d2 = -20;
+		pid_outer_y.epsilon_i2 = -20;
+		pid_outer_x.i_max = 900;
+		
 	}
 	else if(point_order == 1){
-		x_target = point_list[3].x;
-		y_target = point_list[3].y;
+		
+		x_target = point_list[3].x-1;
+		y_target = point_list[3].y+17;
 		motor1.Anl_v = 100;
 		motor2.Anl_v = 100;
+		pid_outer_x.epsilon_d1 = 20;
+		pid_outer_x.epsilon_i1 = 20;
+		pid_outer_y.epsilon_d1 = 35;
+		pid_outer_y.epsilon_i1 = 35;
+		
+		pid_outer_x.epsilon_d2 = -25;
+		pid_outer_x.epsilon_i2 = -28;
+		pid_outer_y.epsilon_d2 = 0;
+		pid_outer_y.epsilon_i2 = -5;
 	}
 	task_flag = 0;
-	if(pid_outer_x.err<10&&pid_outer_x.err>-10&&pid_outer_y.err<10&&pid_outer_y.err>-10){
+	if(fabs_int(point_list[4].x-x_cur)<13&&fabs_int(point_list[4].y-y_cur)<13){
 		//float r = 
 		task_flag = 1;
 	}
@@ -75,50 +122,71 @@ void task4(void){
 	x0 = point_list[0].x;
 	y0 = point_list[0].y;
 	if(point_order==0){
-		x_target = 400;
+		x_target = 380;
 		y_target = 330;
+		pid_outer_x.epsilon_d1 = 20;
+		pid_outer_x.epsilon_i1 = 20;
+		pid_outer_y.epsilon_d1 = 20;
+		pid_outer_y.epsilon_i1 = 20;
+		
+		pid_outer_x.epsilon_d2 = -20;
+		pid_outer_x.epsilon_i2 = -20;
+		pid_outer_y.epsilon_d2 = -20;
+		pid_outer_y.epsilon_i2 = -20;
 	}
 	else if(point_order == 1){
-		x_target = point_list[3].x;
-		y_target = point_list[3].y;
+		x_target = point_list[3].x-1;
+		y_target = point_list[3].y+17;
 		motor1.Anl_v = 100;
 		motor2.Anl_v = 100;
+		pid_outer_x.epsilon_d1 = 20;
+		pid_outer_x.epsilon_i1 = 20;
+		pid_outer_y.epsilon_d1 = 35;
+		pid_outer_y.epsilon_i1 = 35;
+		
+		pid_outer_x.epsilon_d2 = -25;
+		pid_outer_x.epsilon_i2 = -28;
+		pid_outer_y.epsilon_d2 = 0;
+		pid_outer_y.epsilon_i2 = -5;
 	}
-	if(fabs_int(x_cur-400)<10&&fabs_int(y_cur-330)<10){
+	if(fabs_int(y_cur-330)<10){
 		//float r = 
 		point_order = 1;
+		pid_outer_x.i = 0;
+		pid_outer_y.i = 0;
+		pid_outer_x.i_max = 500;
 	}
 }
 
 //利用增量式PID控制平板转动指定角度
-void pid_dangle(stepper *motor,int v)
-{
-	int No = motor->No;
+//void pid_dangle(stepper *motor,int v)
+//{
+//	int No = motor->No;
 
-	//y轴电机
-	if(No==1){
-		motor->pid_concroler->target_val = y_target;
-		pos_pid_realize(motor->pid_concroler,y_cur);
-		target_step_y += motor->pid_concroler->output;
-		motor->target_step = target_step_y;
-		if(motor->target_step>=350)
-			motor->target_step=350;
-		else if(motor->target_step<=-350)
-			motor->target_step=-350;
-		motor->Anl_v = v;
-	}
-	if(No==2){
-		motor->pid_concroler->target_val = x_target;
-		pos_pid_realize(motor->pid_concroler,x_cur);
-		target_step_x += motor->pid_concroler->output;
-		motor->target_step = target_step_x;
-		if(motor->target_step>=350)
-			motor->target_step=350;
-		else if(motor->target_step<=-350)
-			motor->target_step=-350;
-		motor->Anl_v = v;
-	}
-}
+//	//y轴电机
+//	if(No==1){
+//		motor->pid_concroler->target_val = y_target;
+//		pos_pid_realize(motor->pid_concroler,y_cur);
+//		target_step_y += motor->pid_concroler->output;
+//		motor->target_step = target_step_y;
+//		if(motor->target_step>=350)
+//			motor->target_step=350;
+//		else if(motor->target_step<=-350)
+//			motor->target_step=-350;
+//		motor->Anl_v = v;
+//	}
+//	if(No==2){
+//		motor->pid_concroler->target_val = x_target;
+//		pos_pid_realize(motor->pid_concroler,x_cur);
+//		target_step_x += motor->pid_concroler->output;
+//		motor->target_step = target_step_x;
+//		if(motor->target_step>=350)
+//			motor->target_step=350;
+//		else if(motor->target_step<=-350)
+//			motor->target_step=-350;
+//		motor->Anl_v = v;
+//	}
+//}
 
 
 /********** PID底层函数 **********/
@@ -132,7 +200,10 @@ void pid_init(pid* pid_controller,float p,float i,float d,PIDOut_Type max,PIDOut
 	pid_controller->target_val = 0;
 	pid_controller->err = 0;
 	pid_controller->err_k1 = 0;
-	pid_controller->err_k2 = 0;
+	pid_controller->epsilon_d1 = 20;
+	pid_controller->epsilon_i1 = 20;
+	pid_controller->epsilon_d2 = -20;
+	pid_controller->epsilon_i2 = -20;
 	pid_controller->output = 0;
 	pid_controller->max = max;
 	pid_controller->min = min;
@@ -141,15 +212,15 @@ void pid_init(pid* pid_controller,float p,float i,float d,PIDOut_Type max,PIDOut
 }
 
 /* 增量式PID实现函数 */
-void pos_pid_realize(pid* PID,PIDIn_Type actual_val)
-{
-	PID->cur_val = actual_val;
-	PID->err = PID->target_val - PID->cur_val;
-	//计算de(k)
-	PID->output = PID->kp*(PID->err - PID->err_k1) + PID->ki*PID->err + PID->kd*(PID->err + PID->err_k2 - 2*PID->err_k1);
-	PID->err_k2=PID->err_k1;
-	PID->err_k1=PID->err;
-}
+//void pos_pid_realize(pid* PID,PIDIn_Type actual_val)
+//{
+//	PID->cur_val = actual_val;
+//	PID->err = PID->target_val - PID->cur_val;
+//	//计算de(k)
+//	PID->output = PID->kp*(PID->err - PID->err_k1) + PID->ki*PID->err + PID->kd*(PID->err + PID->err_k2 - 2*PID->err_k1);
+//	PID->err_k2=PID->err_k1;
+//	PID->err_k1=PID->err;
+//}
 
 /* 位置式PID实现函数 */
 //mode：1：内环PID；2：外环PID
@@ -157,17 +228,17 @@ void pid_realize(pid *PID,PIDIn_Type actual_val,int mode)
 {
 	float switch_d = 1;
 	int switch_i = 1;	//积分分离
-	int epsilon_d,epsilon_i;
+	//int epsilon_d,epsilon_i;
 	PID->cur_val = actual_val;
 	PID->err = PID->target_val - PID->cur_val;
 	if(mode==1){//内环
-		epsilon_d = 30;
-		epsilon_i = 30;
+		PID->epsilon_d1 = 30;
+		PID->epsilon_i1 = 30;
+		PID->epsilon_d2 = -30;
+		PID->epsilon_i2 = -30;
 		PID->i_max = 3000;
 	}
 	else if(mode==2){//外环
-		epsilon_d = 20;
-		epsilon_i = 20;
 		PID->i_max = 900;
 	}
 	//抗积分饱和
@@ -178,9 +249,9 @@ void pid_realize(pid *PID,PIDIn_Type actual_val,int mode)
 	}
 	else PID->i += PID->err;
 	//积分分离和微分分离
-	if(fabs_int(PID->err)<epsilon_d) switch_d = 0;
-	if(fabs_int(PID->err)>epsilon_i) switch_i = 0;
-	if(fabs_int(PID->err)<5) switch_i = 0;
+	if(PID->err>PID->epsilon_d1&&PID->err<PID->epsilon_d2) switch_d = 0;
+	if(PID->err<PID->epsilon_i1&&PID->err>PID->epsilon_i2) switch_i = 0;
+	//if(fabs_int(PID->err)<5) switch_i = 0;
 	//积分限幅
 	if(PID->i>PID->i_max) PID->i = PID->i_max;
 	else if(PID->i<-PID->i_max) PID->i = -PID->i_max;
