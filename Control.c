@@ -50,7 +50,7 @@ void task2(void){
 	x0 = point_list[0].x;
 	y0 = point_list[0].y;
 	x_target = point_list[4].x+1;
-	y_target = point_list[4].y-3;
+	y_target = point_list[4].y-5;
 	pid_outer_x.epsilon_d1 = 20;
 	pid_outer_x.epsilon_i1 = 20;
 	pid_outer_y.epsilon_d1 = 20;
@@ -60,6 +60,8 @@ void task2(void){
 	pid_outer_x.epsilon_i2 = -20;
 	pid_outer_y.epsilon_d2 = -20;
 	pid_outer_y.epsilon_i2 = -20;
+	pid_outer_x.i_max = 800;
+	pid_outer_y.i_max = 800;
 }
 
 int point_order = 0;
@@ -96,8 +98,8 @@ void task3(void){
 	}
 	else if(point_order == 1){
 		
-		x_target = point_list[3].x-1;
-		y_target = point_list[3].y+17;
+		x_target = point_list[3].x-2;
+		y_target = point_list[3].y;
 		motor1.Anl_v = 100;
 		motor2.Anl_v = 100;
 		pid_outer_x.epsilon_d1 = 20;
@@ -135,8 +137,8 @@ void task4(void){
 		pid_outer_y.epsilon_i2 = -20;
 	}
 	else if(point_order == 1){
-		x_target = point_list[3].x-1;
-		y_target = point_list[3].y+17;
+		x_target = point_list[3].x-2;
+		y_target = point_list[3].y;
 		motor1.Anl_v = 100;
 		motor2.Anl_v = 100;
 		pid_outer_x.epsilon_d1 = 20;
@@ -251,7 +253,7 @@ void pid_realize(pid *PID,PIDIn_Type actual_val,int mode)
 	//积分分离和微分分离
 	if(PID->err<PID->epsilon_d1&&PID->err>PID->epsilon_d2) switch_d = 0;
 	if(PID->err>PID->epsilon_i1&&PID->err<PID->epsilon_i2) switch_i = 0;
-	//if(fabs_int(PID->err)<5) switch_i = 0;
+	if(fabs_int(PID->err)<5) switch_i = 0;
 	//积分限幅
 	if(PID->i>PID->i_max) PID->i = PID->i_max;
 	else if(PID->i<-PID->i_max) PID->i = -PID->i_max;
